@@ -27,8 +27,8 @@ function anything(a)
 
 
 
-this.QLearner = new QLearner();
-
+var QLearner = new QLearner();
+var state = "(60,60)";
 
 function QLearner() {
     this.qValues = new dict();
@@ -42,43 +42,43 @@ function QLearner() {
     };
     
     this.getQValue = function(state, action) {
-	//	    """
-	//	      Returns Q(state,action)
-	//	      Should return 0.0 if we never seen
-	//	      a state or (state,action) tuple
-	//	    """
-	//	    "*** YOUR CODE HERE ***"
-		//
-	//	    return self.qValues[(state, action)]
-    	
+    //        """
+    //          Returns Q(state,action)
+    //          Should return 0.0 if we never seen
+    //          a state or (state,action) tuple
+    //        """
+    //        "*** YOUR CODE HERE ***"
+        //
+    //        return self.qValues[(state, action)]
+        
 
-		var sa = makeSA(state, action);
-		
-    	if (this.qValues.hasKey(sa)) {
-    		return this.qValues.getValue(sa);
-    	} else {
-    		return 0.0;
-    	};
+        var sa = combine(state, action);
+        
+        if (this.qValues.hasKey(sa)) {
+            return this.qValues.getValue(sa);
+        } else {
+            return 0.0;
+        };
     };
-		
+        
     this.getValue = function(state) {
-    	//"""
-    	//Returns max_action Q(state,action)
-    	//where the max is over legal actions.  Note that if
-    	//there are no legal actions, which is the case at the
-    	//terminal state, you should return a value of 0.0.
-    	//"""
-    	
-    	var actions = getLegalActions(state);
-    	var value = 0.0;
-    	for (var i = 0 ;i < actions.length;i++) {
-    		qValue = this.getQValue(state, actions[i]);
-    		if (qValue > value) {
-    			value = qValue;
-    		};
-    	return value;
-    	};
-    	
+        //"""
+        //Returns max_action Q(state,action)
+        //where the max is over legal actions.  Note that if
+        //there are no legal actions, which is the case at the
+        //terminal state, you should return a value of 0.0.
+        //"""
+        
+        var actions = getLegalActions(state);
+        var value = 0.0;
+        for (var i = 0 ;i < actions.length;i++) {
+            qValue = this.getQValue(state, actions[i]);
+            if (qValue > value) {
+                value = qValue;
+            };
+        return value;
+        };
+        
     };
     
     
@@ -90,34 +90,34 @@ function QLearner() {
 //    you should return None.
 //  """
 //  "*** YOUR CODE HERE ***"
-    	
-    	var actions = getLegalActions(state);
-    	if (actions.length == 0) {
-    		return "None"; // --fix what is none in js
-    	};
-    	var value = -Infinity; // -- fix ... does this work?
-    	var choices = new Array();
-    	for(var i = 0; i < actions.length;i++) {
-    		var qValue = this.getQValue(state, actions[i]);
-    		if (qValue == value) {
-    			choices.push(actions[i]);
-    		};
-    		if (qValue > value) {
-    			value = qValue;
-    			choices = new Array();
-    			choices.push(actions[i]);
-    		};
-    	};
-    	if (choices.length == 1) {
-    		post("state:" + state + " Has best choice:" + choices[0]) + "\n";
-    		return choices[0];
-    	} else {
-    		return randomChoice(choices);
-    	};
+        
+        var actions = getLegalActions(state);
+        if (actions.length == 0) {
+            return "None"; // --fix what is none in js
+        };
+        var value = -Infinity; // -- fix ... does this work?
+        var choices = new Array();
+        for(var i = 0; i < actions.length;i++) {
+            var qValue = this.getQValue(state, actions[i]);
+            if (qValue == value) {
+                choices.push(actions[i]);
+            };
+            if (qValue > value) {
+                value = qValue;
+                choices = new Array();
+                choices.push(actions[i]);
+            };
+        };
+        if (choices.length == 1) {
+            post("state:" + state + " Has best choice:" + choices[0]) + "\n";
+            return choices[0];
+        } else {
+            return randomChoice(choices);
+        };
     };
     
     this.getAction = function(state) {
-    	
+        
 //  def getAction(self, state):
 //  """
 //    Compute the action to take in the current state.  With
@@ -129,22 +129,22 @@ function QLearner() {
 //    HINT: You might want to use util.flipCoin(prob)
 //    HINT: To pick randomly from a list, use random.choice(list)
 
-    	var legalActions = getLegalActions();
-    	var action = null;
-    	
-    	if (flipCoin(this.epsilon) == true) {
-    		action = randomChoice(legalActions);
-    	} else {
-    		action = this.getPolicy(state);
-    	};
-    	
-    	return action;
+        var legalActions = getLegalActions();
+        var action = null;
+        
+        if (flipCoin(this.epsilon) == true) {
+            action = randomChoice(legalActions);
+        } else {
+            action = this.getPolicy(state);
+        };
+        
+        return action;
 
     };
     
 
     this.update = function(state, action, nextState, reward) {
-    	
+        
     //  def update(self, state, action, nextState, reward):
 //  """
 //    The parent class calls this to observe a
@@ -154,108 +154,154 @@ function QLearner() {
   //    
 //      self.qValues[stateAction] =  ( ( (1-self.alpha) * self.getQValue(state, action))  + self.alpha * sample )
   //
-    	
-    	var stateAction = '(' + state + ',' + action + ')';
-    	post("this.getvalue "+ nextState + ":" + this.getValue(nextState) + "\n");
-    	
-    	var sample = (reward + (this.discount * this.getValue(nextState))) ;
-    	var oldValue = this.getQValue(state, action);
-    	var newValue = ( ( (1 - this.alpha) * oldValue) + (this.alpha * sample) );
-    	
-    	this.qValues.setValue(stateAction, newValue);
-    	post("this.qValue["+stateAction+"]:"+this.qValues.getValue(stateAction)+"\n");
-    	
-    	
+        
+        var stateAction = combine(state, action);
+        post("this.getvalue "+ nextState + ":" + this.getValue(nextState) + "\n");
+        
+        var sample = (reward + (this.discount * this.getValue(nextState))) ;
+        var oldValue = this.getQValue(state, action);
+        var newValue = ( ( (1 - this.alpha) * oldValue) + (this.alpha * sample) );
+        
+        this.qValues.setValue(stateAction, newValue);
+        post("this.qValue["+stateAction+"]:"+this.qValues.getValue(stateAction)+"\n");
+        
+        
     };
     
     this.testItQ = function(state,action) {
-    	post(makeSA(state,action));
+        post(combine(state,action));
     };
 };
 
 function setEpsilon(value) {
-	this.QLearner.epsilon = value;
+    this.QLearner.epsilon = value;
 };
 
 function setAlpha(value) {
-	this.QLearner.alpha = value;
+    this.QLearner.alpha = value;
 };
 
 function setDiscount(value) {
-	this.QLearner.discount = value;
+    this.QLearner.discount = value;
 };
 
 function getPolicy(state) {
-	outlet(0, ("/next-state " + this.QLearner.getPolicy(state)) );
+    outlet(0, ("/next-state " + this.QLearner.getPolicy(state)) );
 };
 
-function getAction(state) {
-	outlet(0, ("/next-state " + this.QLearner.getAction(state)) );
+function getAction() {
+	action = this.QLearner.getAction(this.state);
+	
+	oldState = this.state;
+	lastNotes = this.breakIntoNotes(this.state);
+	newState = this.makeNextState(this.state, action);
+
+	this.state = newState;
+	
+	post("oldState:" + oldState + "\n");
+	post("nextState:" + nextState + "\n");
+	outlet(0, "/action", lastNotes[0], lastNotes[1], action);
+
+//    outlet(0, ("/action " + this.QLearner.getAction(state)) );
 };
 
-function update(state, action, nextState, reward) {
-	this.QLearner.update(state, action, nextState, reward);
+function update(state1, state2, action, nextState1, nextState2, reward) {
+	state = this.combine(state1, state2);
+	nextState = this.combine(nextState1, nextState2);
+    this.QLearner.update(state, action, nextState, reward);
 };
 
 function test(state,action) {
-	this.QLearner.testItQ(state, action);
+    this.QLearner.testItQ(state, action);
 };
 
 function getLegalActions(state) {
-	var actions = new Array();
-	stateNum = parseInt(state);
-	actions[0] = "1";
-	actions[1] = "2";
-	actions[2] = "-1";
-	actions[3] = "-2";
-	return actions;
+    var actions = new Array();
+    stateNum = parseInt(state);
+    actions[0] = "60";
+    actions[1] = "61";
+    actions[2] = "62";
+    actions[3] = "63";
+    actions[4] = "64";
+    actions[5] = "65";
+    actions[6] = "66";
+    actions[7] = "67";
+    actions[8] = "68";
+    actions[9] = "69";
+    actions[10] = "70";
+    actions[11] = "71";
+    return actions;
 };
 
 
 function setQValue(state, action, value) {
-	var sa = '(' + state + ',' + action + ')';
-	this.QLearner.setQValue(sa, value);
+    var sa = this.combine(state, action);
+    this.QLearner.setQValue(sa, value);
 
 };
 
 function getValue(state) {
-	return this.QLearner.getValue(state);
+    return this.QLearner.getValue(state);
 }
 
 function dict() {
-	this.array = new Array();
+    this.array = new Array();
 
-	this.getValue = function(state){
-		if (state in this.array) {
-			return this.array[state];
-		} else {
-			return 0.0;
-		}
-	};
+    this.getValue = function(state){
+        if (state in this.array) {
+            return this.array[state];
+        } else {
+            return 0.0;
+        }
+    };
 
-	this.setValue = function (state, value) {
-		this.array[state] = value;
-	};
+    this.setValue = function (state, value) {
+        this.array[state] = value;
+    };
+    
+    this.hasKey = function(key) {
+            return (key in this.array);
+    };
+};
+
+function combine(a, b) {
+	return ( '(' + a + ',' + b + ')' );
+};
+
+function makeNextState(oldState, action) {
+	// look at commented out to simplfy
+	nextState = "(" + oldState.split(",")[1].split([")"])[0] + "," + action + ")";
 	
-	this.hasKey = function(key) {
-			return (key in this.array);
-	};
+//  nextState = "(";
+//	nextState = this.state.split(",");
+//	nextState = nextState[1].split(")");
+//	nextState = nextState[0];
+//  nextState = nextState + "," + action + ")";
+	return nextState;
 };
 
-function makeSA(state, action) {
-	return ( '(' + state + ',' + action + ')' );
-};
+function breakIntoNotes(state) {
+	notes = [];
+	subString = state.split(",");
+	notes[0]= subString[0].split("(")[1];
+	notes[1] = subString[1].split(")")[0];
+	
+	post("note1:" + notes[0] + "\n");
+	post("note2:" + notes[1] + "\n");
+	
+	return notes;
+}
 
 function flipCoin(p) {
-	r = Math.random();
-	return r < p;
-	
+    r = Math.random();
+    return r < p;
+    
 };
 
 function randomChoice(choices) {
-	var randomnumber = Math.floor(Math.random()*choices.length );
-	
-	return choices[randomnumber];
+    var randomnumber = Math.floor(Math.random()*choices.length );
+    
+    return choices[randomnumber];
 };
 
 
@@ -263,21 +309,21 @@ function randomChoice(choices) {
 
 
 //function someObj() {
-//	    this.publicVar = 'public';
-//	    var privateVar = 'private';
-//	    this.someMethod = function() {
-//	        alert('boo');
-//	        someOtherMethod();
-//	    };
-//	    // Private method. (Due to closure, this need not be declared before
-//	    // someMethod although someMethod uses it.)
-//	    var someOtherMethod = function() {
-//	        alert('indirect reference');
-//	    };
-//	}
-//	o_obj = new someObj();
-//	o_obj.someOtherMethod(); //will throw an undefined function error
-//	o_obj.someMethod(); //alerts "boo" followed by "indirect reference"
+//        this.publicVar = 'public';
+//        var privateVar = 'private';
+//        this.someMethod = function() {
+//            alert('boo');
+//            someOtherMethod();
+//        };
+//        // Private method. (Due to closure, this need not be declared before
+//        // someMethod although someMethod uses it.)
+//        var someOtherMethod = function() {
+//            alert('indirect reference');
+//        };
+//    }
+//    o_obj = new someObj();
+//    o_obj.someOtherMethod(); //will throw an undefined function error
+//    o_obj.someMethod(); //alerts "boo" followed by "indirect reference"
 //};
 
 
