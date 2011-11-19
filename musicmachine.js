@@ -186,29 +186,38 @@ function setDiscount(value) {
 };
 
 function getPolicy(state) {
-    outlet(0, ("/next-state " + this.QLearner.getPolicy(state)) );
+	var action = this.QLearner.getPolicy(state);
+
+	var newState = this.makeNextState(this.state, action);
+	this.state = newState;
+	
+    outlet(0, "/policy", action );
 };
 
 function getAction() {
-	action = this.QLearner.getAction(this.state);
+	var action = this.QLearner.getAction(this.state);
 	
-	oldState = this.state;
-	lastNotes = this.breakIntoNotes(this.state);
-	newState = this.makeNextState(this.state, action);
+	var oldState = this.state;
+	var lastNotes = this.breakIntoNotes(this.state);
+	var newState = this.makeNextState(this.state, action);
 
 	this.state = newState;
 	
 	post("oldState:" + oldState + "\n");
-	post("nextState:" + nextState + "\n");
+	post("action:" + action + "\n");
+	post("newState:" + newState + "\n");
+	post("this.state:" + this.state + "\n");
 	outlet(0, "/action", lastNotes[0], lastNotes[1], action);
 
 //    outlet(0, ("/action " + this.QLearner.getAction(state)) );
 };
 
 function update(state1, state2, action, nextState1, nextState2, reward) {
-	state = this.combine(state1, state2);
-	nextState = this.combine(nextState1, nextState2);
-    this.QLearner.update(state, action, nextState, reward);
+    post("statebeforeUpdate:", this.state);
+	var state = this.combine(state1, state2);
+	var nextState = this.combine(nextState1, nextState2);
+    this.QLearner.update(this.state, action, this.nextState, reward);
+    post("stateAfterUpdate:", this.state);
 };
 
 function test(state,action) {
@@ -217,7 +226,7 @@ function test(state,action) {
 
 function getLegalActions(state) {
     var actions = new Array();
-    stateNum = parseInt(state);
+    var stateNum = parseInt(state);
     actions[0] = "60";
     actions[1] = "61";
     actions[2] = "62";
@@ -270,7 +279,7 @@ function combine(a, b) {
 
 function makeNextState(oldState, action) {
 	// look at commented out to simplfy
-	nextState = "(" + oldState.split(",")[1].split([")"])[0] + "," + action + ")";
+	var nextState = "(" + oldState.split(",")[1].split([")"])[0] + "," + action + ")";
 	
 //  nextState = "(";
 //	nextState = this.state.split(",");
@@ -281,8 +290,8 @@ function makeNextState(oldState, action) {
 };
 
 function breakIntoNotes(state) {
-	notes = [];
-	subString = state.split(",");
+	var notes = [];
+	var subString = state.split(",");
 	notes[0]= subString[0].split("(")[1];
 	notes[1] = subString[1].split(")")[0];
 	
