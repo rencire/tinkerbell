@@ -27,8 +27,12 @@ function anything(a)
 
 
 
-var QLearner = new QLearner();
-var state = "(60,60)";
+var theLearner = new QLearner();
+var lastState = new StateRep(new Note(60,88,4,8), new Note(61,88,4,8), new Note(62,88,4,8));
+var currentState = new StateRep(new Note(60,88,4,8), new Note(61,88,4,8), new Note(62,88,4,8));
+var fileVersion = 0;
+var lastAction = new Note(62,88,4,8);
+
 
 function QLearner() {
     this.qValues = new dict();
@@ -109,9 +113,11 @@ function QLearner() {
             };
         };
         if (choices.length == 1) {
-            post("state:" + state + " Has best choice:" + choices[0]) + "\n";
+            post("\n state:" + state + " Has best choice:" + choices[0] + "\n");
             return choices[0];
         } else {
+            post("\n state:" + state + " Has best choices including:" + choices[0] + 
+            " and:" + choices[1] + "\n");
             return randomChoice(choices);
         };
     };
@@ -138,6 +144,7 @@ function QLearner() {
             action = this.getPolicy(state);
         };
         
+        lastAction = action;
         return action;
 
     };
@@ -156,101 +163,231 @@ function QLearner() {
   //
         
         var stateAction = combine(state, action);
-        post("this.getvalue "+ nextState + ":" + this.getValue(nextState) + "\n");
+        post("\n this.getvalue "+ nextState + ":" + this.getValue(nextState) + "\n");
         
         var sample = (reward + (this.discount * this.getValue(nextState))) ;
         var oldValue = this.getQValue(state, action);
         var newValue = ( ( (1 - this.alpha) * oldValue) + (this.alpha * sample) );
         
         this.qValues.setValue(stateAction, newValue);
-        post("this.qValue["+stateAction+"]:"+this.qValues.getValue(stateAction)+"\n");
+        post("\n this.qValue["+stateAction+"]:"+this.qValues.getValue(stateAction)+"\n");
         
         
     };
     
     this.testItQ = function(state,action) {
-        post(combine(state,action));
+        post("\n" + combine(state,action));
     };
 };
 
+function StateRep(n1,n2,n3) {
+	this.note1 = n1;
+	this.note2 = n2;
+	this.note3 = n3;
+	
+	this.toString = function() {
+		return "(" + this.note1.toString() + 
+			   "/" + this.note2.toString() +
+			   "/" + this.note3.toString() + ")";
+	};
+};
+
+function Note(p,v,l,d) {
+	this.pitch = p;
+	this.velocity = v;
+	this.noteLength = l;
+	this.delay = d;
+	
+	this.toString = function() {
+		return "(" + this.pitch + 
+			   "'" + this.velocity +
+			   "'" + this.noteLength +
+			   "'" + this.delay +")";
+	};
+};
+
+
+function test() {
+	n1 = new Note(60,1,4,8);
+	n2 = new Note(61,2,5,9);
+	n3 = new Note(62,3,6,10);
+
+	s = new StateRep(n1,n2,n3);
+    outlet(0, s.toString());
+};
+
+function setFileVersion(a)
+{
+    fileVersion = a;
+};
+
+function resetFileVersion()
+{
+    fileVersion = 0;
+};
+
+function save()
+{
+    embedmessage("setFileVersion",fileVersion);
+    embedmessage("loadValues", fileVersion);
+};
+
+function loadValues(n) { 
+	
+//	var startNote = new note(60,88,4,8);
+//	var startState = new statRep(startNote,startNote,startNote);
+
+
+    fileName = "qvalues-" + n%8 +".txt";
+    var s = new String();
+    s = fileName;
+    f = new File(s, "read");
+    post("\n File Name:" + fileName);
+    if (f.isopen) {
+    	post("\n preparing to load qValues");
+    	var nextLine = f.readline(256);
+    	while(nextLine != null) {
+    		post("\n loaded:" + nextLine);
+    		nextLine = nextLine.split(":");
+    		theLearner.qValues.setValue(nextLine[0], nextLine[1]);
+            var nextLine = f.readline(256);
+    	};
+        
+        f.close();
+
+    }  else {
+    	post("\n could not open values file: ",f , "\n");
+
+    };
+};
+
+function saveToFile() {
+	
+	fileVersion += 1;
+	var cpt = fileVersion%8;
+	var f = new File("qvalues-"+cpt + ".txt","readwrite", "TEXT"); 
+
+    if (f.isopen) {
+    	var theArray = theLearner.qValues.array;
+    	for(state in theArray) {
+			theLine = state + ":" + theArray[state];
+    		if (theLine.split(":").length == 3) {
+    			f.writeline(theLine);
+    		};
+    	};
+    	
+        f.close();
+
+        post("\n The file ",f.foldername,f.filename,"has beed saved");
+
+
+    }  else {
+        post("\n could not create file: ",f , "\n");
+    };
+
+};
+
 function setEpsilon(value) {
-    this.QLearner.epsilon = value;
+    this.theLearner.epsilon = value;
 };
 
 function setAlpha(value) {
-    this.QLearner.alpha = value;
+    this.theLearner.alpha = value;
 };
 
 function setDiscount(value) {
-    this.QLearner.discount = value;
+    this.theLearner.discount = value;
 };
 
 function getPolicy(state) {
-	var action = this.QLearner.getPolicy(state);
+	post("\n Get Policy");
+	post("\n currentState:" + currentState);
+	var action = this.theLearner.getPolicy(currentState);
 
-	var newState = this.makeNextState(this.state, action);
-	this.state = newState;
+	var newState = this.makeNextState(currentState, action);
+	lastState = currentState;
+	currentState = newState;
 	
-    outlet(0, "/policy", action );
+	lastAction = action;
+	
+	post("\n Policy:" + action);
+    outlet(0, "/policy", action.pitch, action.velocity, action.noteLength, action.delay );
+    
+    post("\n ");
 };
 
 function getAction() {
-	var action = this.QLearner.getAction(this.state);
+	post("\n Get Action");
+	var action = this.theLearner.getAction(currentState);
 	
-	var oldState = this.state;
-	var lastNotes = this.breakIntoNotes(this.state);
-	var newState = this.makeNextState(this.state, action);
+	var oldState = currentState;
+	var newState = this.makeNextState(currentState, action);
 
-	this.state = newState;
+	lastState = currentState;
+	currentState = newState;
 	
-	post("oldState:" + oldState + "\n");
-	post("action:" + action + "\n");
-	post("newState:" + newState + "\n");
-	post("this.state:" + this.state + "\n");
+	lastAction = action;
+	
+	post("\n oldState:" + oldState + "\n");
+	post("\n action:" + action + "\n");
+	post("\n newState:" + newState + "\n");
+	post("\n this.state:" + currentState + "\n");
+	
 	outlet(0, "/action", lastNotes[0], lastNotes[1], action);
+	post("\n ");
 
-//    outlet(0, ("/action " + this.QLearner.getAction(state)) );
+//    outlet(0, ("/action " + this.theLearner.getAction(state)) );
 };
 
-function update(state1, state2, action, nextState1, nextState2, reward) {
-    post("statebeforeUpdate:", this.state);
-	var state = this.combine(state1, state2);
-	var nextState = this.combine(nextState1, nextState2);
-    this.QLearner.update(this.state, action, this.nextState, reward);
-    post("stateAfterUpdate:", this.state);
+function update(reward) {
+    
+    this.theLearner.update(lastState, lastAction, currentState, reward);
+    post("\n statebeforeUpdate:", lastState);
+    post("\n stateAfterUpdate:", currentState);
 };
 
-function test(state,action) {
-    this.QLearner.testItQ(state, action);
-};
+//function test(state,action) {
+//	var its = new it();
+//	post(its.it);
+//	var notit = new notIt();
+//	post(notit.it);
+//};
+//
+//function it() {
+//	this.it = "it";
+//};
+//
+//function notIt() {
+//	this.it = "not it";
+//};
 
 function getLegalActions(state) {
     var actions = new Array();
     var stateNum = parseInt(state);
-    actions[0] = "60";
-    actions[1] = "61";
-    actions[2] = "62";
-    actions[3] = "63";
-    actions[4] = "64";
-    actions[5] = "65";
-    actions[6] = "66";
-    actions[7] = "67";
-    actions[8] = "68";
-    actions[9] = "69";
-    actions[10] = "70";
-    actions[11] = "71";
+    actions[0] = new Note(60,88,4,8);
+    actions[1] = new Note(61,88,4,8);
+    actions[2] = new Note(62,88,4,8);
+    actions[3] = new Note(63,88,4,8);
+    actions[4] = new Note(64,88,4,8);
+    actions[5] = new Note(65,88,4,8);
+    actions[6] = new Note(66,88,4,8);
+    actions[7] = new Note(67,88,4,8);
+    actions[8] = new Note(68,88,4,8);
+    actions[9] = new Note(69,88,4,8);
+    actions[10] = new Note(70,88,4,8);
+    actions[11] = new Note(71,88,4,8);
     return actions;
 };
 
 
 function setQValue(state, action, value) {
     var sa = this.combine(state, action);
-    this.QLearner.setQValue(sa, value);
+    this.theLearner.setQValue(sa, value);
 
 };
 
 function getValue(state) {
-    return this.QLearner.getValue(state);
+    return this.theLearner.getValue(state);
 }
 
 function dict() {
@@ -274,18 +411,12 @@ function dict() {
 };
 
 function combine(a, b) {
-	return ( '(' + a + ',' + b + ')' );
+	return ( "(" + a + "'" + b + ")" );
 };
 
 function makeNextState(oldState, action) {
-	// look at commented out to simplfy
-	var nextState = "(" + oldState.split(",")[1].split([")"])[0] + "," + action + ")";
-	
-//  nextState = "(";
-//	nextState = this.state.split(",");
-//	nextState = nextState[1].split(")");
-//	nextState = nextState[0];
-//  nextState = nextState + "," + action + ")";
+
+	nextState = new StateRep(oldState.note2, oldState.note3, action);
 	return nextState;
 };
 
@@ -295,8 +426,8 @@ function breakIntoNotes(state) {
 	notes[0]= subString[0].split("(")[1];
 	notes[1] = subString[1].split(")")[0];
 	
-	post("note1:" + notes[0] + "\n");
-	post("note2:" + notes[1] + "\n");
+	post("\n note1:" + notes[0] + "\n");
+	post("\n note2:" + notes[1] + "\n");
 	
 	return notes;
 }
