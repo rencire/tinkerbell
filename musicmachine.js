@@ -26,12 +26,11 @@ function anything(a)
 }
 
 
-
-this.QLearner = new QLearner();
+//var QLearner = new QLearner();
 
 
 function QLearner() {
-    this.qValues = new dict();
+    this.qValues = new DictCounter();
     this.epsilon = 0.7; // (exploration prob)
     this.alpha = 0.5; // (learning rate)
     this.discount = 0.9; // (discount rate) // maybe change to 1.0... 
@@ -92,10 +91,11 @@ function QLearner() {
 //  "*** YOUR CODE HERE ***"
     	
     	var actions = getLegalActions(state);
-    	if (actions.length == 0) {
-    		return "None"; // --fix what is none in js
-    	};
-    	var value = -Infinity; // -- fix ... does this work?
+    	// Action will never return 'None' since we will always be able to choose a note
+//        if (actions.length == 0) {
+//    		return "None"; // --fix what is none in js
+//    	};
+    	var value = Number.NEGATIVE_INFINITY; // -- fix ... does this work?
     	var choices = new Array();
     	for(var i = 0; i < actions.length;i++) {
     		var qValue = this.getQValue(state, actions[i]);
@@ -222,43 +222,94 @@ function getValue(state) {
 	return this.QLearner.getValue(state);
 }
 
-function dict() {
-	this.array = new Array();
+// Util functions
+function DictCounter() {
+	this.obj = {};
+}
 
-	this.getValue = function(state){
-		if (state in this.array) {
-			return this.array[state];
-		} else {
-			return 0.0;
-		}
-	};
-
-	this.setValue = function (state, value) {
-		this.array[state] = value;
-	};
-	
-	this.hasKey = function(key) {
-			return (key in this.array);
-	};
+DictCounter.prototype.hasKey = function(key) {
+        return (key in this.obj);
 };
+
+DictCounter.prototype.getValue = function(state){
+    if (state in this.obj) {
+        return this.obj[state];
+    } else {
+        return 0.0;
+    }
+};
+
+DictCounter.prototype.setValue = function (state, value) {
+    this.obj[state] = value;
+};
+
+DictCounter.prototype.dotProduct = function (counter) {
+    var product = 0;
+    for (state in this.obj) {
+        product += this.getValue(state) * counter.getValue(state);
+    }
+    return product;
+};
+
+
 
 function makeSA(state, action) {
 	return ( '(' + state + ',' + action + ')' );
-};
+}
 
 function flipCoin(p) {
 	r = Math.random();
 	return r < p;
 	
-};
+}
 
 function randomChoice(choices) {
 	var randomnumber = Math.floor(Math.random()*choices.length );
 	
 	return choices[randomnumber];
-};
+}
+
+function forEachIn(object, action) {
+  for (var property in object) {
+    if (Object.prototype.hasOwnProperty.call(object, property))
+      action(property, object[property]);
+  }
+}
+
+// ---------------------
+// Feature vector code
+// ---------------------
+
+function BasicExtractor() {
+    this.getFeatures = function (state, action) {
+        var features = new DictCounter();
+        // Fill in feature computation here:
+
+        return features
+    };
+}
 
 
+function ApproxQAgent(Extractor) {
+    this.qValues = new DictCounter();
+    this.weights = new DictCounter();
+    this.getFeatures = Extractor.getFeatures;
+
+    this.getQValue = function (state, action) {
+        var featVector = this.getFeatures(state, action);
+        return this.weights.dotProduct(featVector);
+    };
+
+    this.update = function (state, action, nextState, reward) {
+        var featVector = this.getFeatures(state, action);
+        var correction = (reward + this.discount * this.getValue()) - this.getQValue(state, action);
+        for (var feature in featVector) {
+            this.weights[feature] += this.alpha * correction * featVector[feature];
+        }
+    }
+}
+
+ApproxQAgent.prototype = new QLearner();
 
 
 
