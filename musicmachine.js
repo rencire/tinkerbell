@@ -222,7 +222,10 @@ function getValue(state) {
 	return this.QLearner.getValue(state);
 }
 
+// --------------------
 // Util functions
+// --------------------
+// Maybe use DictCounter to store values, instead of its object
 function DictCounter() {
 	this.obj = {};
 }
@@ -280,178 +283,44 @@ function forEachIn(object, action) {
 // Feature vector code
 // ---------------------
 
-function BasicExtractor() {
-    this.getFeatures = function (state, action) {
-        var features = new DictCounter();
-        // Fill in feature computation here:
+function BasicExtractor() {}
 
-        return features
-    };
-}
+BasicExtractor.prototype.getFeatures() = function (state, action) {
+    var features = new DictCounter();
+    // Fill in feature computation here:
+    features.setValue('bias', 1.0);
 
+    // change in pitch
+    return features
+};
+
+/* If too slow, take out BasicExtractor class and use getFeatures only
+function getFeatures () {}
+*/
 
 function ApproxQAgent(Extractor) {
     this.qValues = new DictCounter();
     this.weights = new DictCounter();
     this.getFeatures = Extractor.getFeatures;
-
-    this.getQValue = function (state, action) {
-        var featVector = this.getFeatures(state, action);
-        return this.weights.dotProduct(featVector);
-    };
-
-    this.update = function (state, action, nextState, reward) {
-        var featVector = this.getFeatures(state, action);
-        var correction = (reward + this.discount * this.getValue()) - this.getQValue(state, action);
-        for (var feature in featVector) {
-            this.weights[feature] += this.alpha * correction * featVector[feature];
-        }
-    }
 }
 
 ApproxQAgent.prototype = new QLearner();
 
+ApproxQAgent.prototype.getQValue = function (state, action) {
+    var featVector = this.getFeatures(state, action);
+    return this.weights.dotProduct(featVector);
+};
+
+ApproxQAgent.prototype.update = function (state, action, nextState, reward) {
+    var featVector = this.getFeatures(state, action);
+    var correction = (reward + this.discount * this.getValue()) - this.getQValue(state, action);
+    for (var feature in featVector) {
+        this.weights[feature] += this.alpha * correction * featVector[feature];
+    }
+};
+
+var basicEx = new BasicExtractor();
+var AQ = new ApproxQAgent(basicEx);
 
 
-//function someObj() {
-//	    this.publicVar = 'public';
-//	    var privateVar = 'private';
-//	    this.someMethod = function() {
-//	        alert('boo');
-//	        someOtherMethod();
-//	    };
-//	    // Private method. (Due to closure, this need not be declared before
-//	    // someMethod although someMethod uses it.)
-//	    var someOtherMethod = function() {
-//	        alert('indirect reference');
-//	    };
-//	}
-//	o_obj = new someObj();
-//	o_obj.someOtherMethod(); //will throw an undefined function error
-//	o_obj.someMethod(); //alerts "boo" followed by "indirect reference"
-//};
 
-
-//class QLearningAgent(ReinforcementAgent):
-//  """
-//    Q-Learning Agent
-//
-//    Functions you should fill in:
-//      - getQValue
-//      - getAction
-//      - getValue
-//      - getPolicy
-//      - update
-//
-//    Instance variables you have access to
-//      - self.epsilon (exploration prob)
-//      - self.alpha (learning rate)
-//      - self.discount (discount rate)
-//
-//    Functions you should use
-//      - self.getLegalActions(state)
-//        which returns legal actions
-//        for a state
-//  """
-//  def __init__(self, **args):
-//    "You can initialize Q-values here..."
-//    ReinforcementAgent.__init__(self, **args)
-//
-//    "*** YOUR CODE HERE ***"
-//    self.qValues = util.Counter()
-//
-//  def getQValue(self, state, action):
-//    """
-//      Returns Q(state,action)
-//      Should return 0.0 if we never seen
-//      a state or (state,action) tuple
-//    """
-//    "*** YOUR CODE HERE ***"
-//
-//    return self.qValues[(state, action)]
-//
-//
-//  def getValue(self, state):
-//    """
-//      Returns max_action Q(state,action)
-//      where the max is over legal actions.  Note that if
-//      there are no legal actions, which is the case at the
-//      terminal state, you should return a value of 0.0.
-//    """
-//    "*** YOUR CODE HERE ***"
-//    actions = self.getLegalActions(state)
-//    value = 0.0
-//    for a in actions :
-//        qValue = self.getQValue(state, a)
-//        if qValue > value :
-//            value = qValue
-//        
-//    return value
-//
-//  def getPolicy(self, state):
-//    """
-//      Compute the best action to take in a state.  Note that if there
-//      are no legal actions, which is the case at the terminal state,
-//      you should return None.
-//    """
-//    "*** YOUR CODE HERE ***"
-//    
-//    actions = self .getLegalActions(state)
-//    if len(actions) == 0 :
-//        return None
-//    value = float('-inf')
-//    choices = []
-//    for a in actions :
-//        qValue = self.getQValue(state, a)
-//        if qValue == value :
-//           choices.append(a)
-//        if qValue > value :
-//            value = qValue
-//            choices = []
-//            choices.append(a)
-//    if len(choices) == 1 :
-//        return choices[0]
-//    else :
-//        return random.choice(choices)
-//        
-//            
-//
-//  def getAction(self, state):
-//    """
-//      Compute the action to take in the current state.  With
-//      probability self.epsilon, we should take a random action and
-//      take the best policy action otherwise.  Note that if there are
-//      no legal actions, which is the case at the terminal state, you
-//      should choose None as the action.
-//
-//      HINT: You might want to use util.flipCoin(prob)
-//      HINT: To pick randomly from a list, use random.choice(list)
-//    """
-//    # Pick Action
-//    legalActions = self.getLegalActions(state)
-//    action = None
-//    "*** YOUR CODE HERE ***"
-//
-//    if util.flipCoin(self.epsilon) == True :
-//        action = random.choice(legalActions)
-//    else :
-//        action = self.getPolicy(state)
-//
-//    return action
-//
-//  def update(self, state, action, nextState, reward):
-//    """
-//      The parent class calls this to observe a
-//      state = action => nextState and reward transition.
-//      You should do your Q-Value update here
-//
-//      NOTE: You should never call this function,
-//      it will be called on your behalf
-//    """
-//    "*** YOUR CODE HERE ***"
-//    
-//    stateAction = (state, action)
-//    sample = (reward + (self.discount * self.getValue(nextState)) ) 
-//    
-//    self.qValues[stateAction] =  ( ( (1-self.alpha) * self.getQValue(state, action))  + self.alpha * sample )
-//
