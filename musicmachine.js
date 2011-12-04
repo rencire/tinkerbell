@@ -1,3 +1,4 @@
+post("THERHEHREHRHERH_________");
 function foo(a,b,c)
 {
     post(a,b,c);
@@ -31,7 +32,10 @@ var theLearner = new QLearner();
 var lastState = new StateRep(new Note(60,88,4,8), new Note(61,88,4,8), new Note(62,88,4,8));
 var currentState = new StateRep(new Note(60,88,4,8), new Note(61,88,4,8), new Note(62,88,4,8));
 var fileVersion = 0;
-var lastAction = new Note(62,88,4,8);
+var lastAction = new Note(63,88,4,8);
+var actionSeries = new Array(); 
+var theLegalActions;
+var melody;
 
 
 function QLearner() {
@@ -94,8 +98,10 @@ function QLearner() {
 //    you should return None.
 //  """
 //  "*** YOUR CODE HERE ***"
+        post("\n Q Get Policy");
         
         var actions = getLegalActions(state);
+        post("\n NumberOfActions:", actions.length);
         if (actions.length == 0) {
             return "None"; // --fix what is none in js
         };
@@ -152,15 +158,7 @@ function QLearner() {
 
     this.update = function(state, action, nextState, reward) {
         
-    //  def update(self, state, action, nextState, reward):
-//  """
-//    The parent class calls this to observe a
-//    state = action => nextState and reward transition.
-//    You should do your Q-Value update here
-// 
-  //    
-//      self.qValues[stateAction] =  ( ( (1-self.alpha) * self.getQValue(state, action))  + self.alpha * sample )
-  //
+    	post("\n Q Update------");
         
         var stateAction = combine(state, action);
         post("\n this.getvalue "+ nextState + ":" + this.getValue(nextState) + "\n");
@@ -172,12 +170,8 @@ function QLearner() {
         this.qValues.setValue(stateAction, newValue);
         post("\n this.qValue["+stateAction+"]:"+this.qValues.getValue(stateAction)+"\n");
         
-        
     };
     
-    this.testItQ = function(state,action) {
-        post("\n" + combine(state,action));
-    };
 };
 
 function StateRep(n1,n2,n3) {
@@ -207,15 +201,6 @@ function Note(p,v,l,d) {
 };
 
 
-function test() {
-	n1 = new Note(60,1,4,8);
-	n2 = new Note(61,2,5,9);
-	n3 = new Note(62,3,6,10);
-
-	s = new StateRep(n1,n2,n3);
-    outlet(0, s.toString());
-};
-
 function setFileVersion(a)
 {
     fileVersion = a;
@@ -230,6 +215,7 @@ function save()
 {
     embedmessage("setFileVersion",fileVersion);
     embedmessage("loadValues", fileVersion);
+    embedmessage("makeLegalActions");
 };
 
 function loadValues(n) { 
@@ -271,7 +257,7 @@ function saveToFile() {
     	var theArray = theLearner.qValues.array;
     	for(state in theArray) {
 			theLine = state + ":" + theArray[state];
-    		if (theLine.split(":").length == 3) {
+    		if (theLine.split(":").length == 2) {
     			f.writeline(theLine);
     		};
     	};
@@ -286,6 +272,26 @@ function saveToFile() {
     };
 
 };
+
+function test(){ 
+	post("test");
+	var theArray = theLearner.qValues.array;
+	for(state in theArray) {
+		theLine = state + ":" + theArray[state];
+		post(theLine.split(":").length);
+		if (theLine.split(":").length == 2) {
+		};
+	};
+}
+
+function printQ(){
+	post("\n Print Q");
+	var theArray = theLearner.qValues.array;
+	for(state in theArray) {
+		theLine = state + ":" + theArray[state];
+		post("\n " + theLine);
+	};
+}
 
 function setEpsilon(value) {
     this.theLearner.epsilon = value;
@@ -316,8 +322,57 @@ function getPolicy(state) {
     post("\n ");
 };
 
+function makeMelodyHelper() {
+	post("\n Get Policy");
+	post("\n currentState:" + currentState);
+	var action = this.theLearner.getPolicy(currentState);
+
+	var newState = this.makeNextState(currentState, action);
+	lastState = currentState;
+	currentState = newState;
+	
+	lastAction = action;
+	
+    
+    return action;
+};
+
+function makeMelody(n) {
+	var startTime = new Date().getTime();
+	this.melody = new Array();
+	for(var i = 0; i < n; i++ ) {
+		nextNote = this.makeMelodyHelper();
+		post('\n Note added' + nextNote);
+		this.melody[i] = nextNote;
+	};
+	
+	var endTime = new Date().getTime();
+	var calcTime = endTime - startTime;
+	calcTimeMin = calcTime / 60000;
+	post("\n Calc Time Min:" + calcTimeMin + "\n calc time mill " + calcTime);
+	outlet(0, "meldoy made");
+};
+
+function nextActionInMelody() {
+	if( this.melody.length != 0) {
+		nextNote = this.melody.pop();
+		post("\n " + nextNote);
+		outlet(0, "/policy", nextNote.pitch, nextNote.velocity, nextNote.noteLength, nextNote.delay );
+	}else {
+		post("\n MELODY___OVER");
+
+	};
+};
+
 function getAction() {
 	post("\n Get Action");
+	
+	outlet(0, "/getAction", 0);
+
+};
+
+function makeActionSeries() {
+	post("\n Make Action Series");
 	var action = this.theLearner.getAction(currentState);
 	
 	var oldState = currentState;
@@ -331,51 +386,69 @@ function getAction() {
 	post("\n oldState:" + oldState + "\n");
 	post("\n action:" + action + "\n");
 	post("\n newState:" + newState + "\n");
-	post("\n this.state:" + currentState + "\n");
+	post("\n currentState:" + currentState + "\n");
 	
-	outlet(0, "/action", lastNotes[0], lastNotes[1], action);
-	post("\n ");
-
-//    outlet(0, ("/action " + this.theLearner.getAction(state)) );
+	actionSeries = new Array(action, oldState.note3, oldState.note2, oldState.note1);
 };
+
+function nextActionInSeries() {
+	post("\n Next Action In Series");
+	if (this.actionSeries.length == 0){
+		this.makeActionSeries();
+	};
+	var nextAction = this.actionSeries.pop();
+	post("\n action:", nextAction.toString());
+	
+	outlet(0, "/action", nextAction.pitch, nextAction.velocity, nextAction.noteLength, nextAction.delay );
+	
+};
+
 
 function update(reward) {
+    post("\n update-----");
     
     this.theLearner.update(lastState, lastAction, currentState, reward);
-    post("\n statebeforeUpdate:", lastState);
-    post("\n stateAfterUpdate:", currentState);
+    post("\n statebeforeUpdate:", lastState.toString());
+    post("\n stateAfterUpdate:", currentState.toString());
 };
 
-//function test(state,action) {
-//	var its = new it();
-//	post(its.it);
-//	var notit = new notIt();
-//	post(notit.it);
-//};
-//
-//function it() {
-//	this.it = "it";
-//};
-//
-//function notIt() {
-//	this.it = "not it";
-//};
+function makeLegalActions() {
+	post("\n Make Legal Actions");
+	var actions = new Array();
+    var index = 0;
+    for(var i =48; i < 72; i++) {
+        for(var j = 40 ; j < 130; j += 40) {
+            for(var p = 1; p < 32; p++) {
+                for(var q = 1; q < 32; q++) {
+                	actions[index] = new Note(i,j,p,q);
+                	index++;
+                }
+            }
+        }
+    }
+	this.theLegalActions = actions;
+};
 
 function getLegalActions(state) {
-    var actions = new Array();
-    var stateNum = parseInt(state);
-    actions[0] = new Note(60,88,4,8);
-    actions[1] = new Note(61,88,4,8);
-    actions[2] = new Note(62,88,4,8);
-    actions[3] = new Note(63,88,4,8);
-    actions[4] = new Note(64,88,4,8);
-    actions[5] = new Note(65,88,4,8);
-    actions[6] = new Note(66,88,4,8);
-    actions[7] = new Note(67,88,4,8);
-    actions[8] = new Note(68,88,4,8);
-    actions[9] = new Note(69,88,4,8);
-    actions[10] = new Note(70,88,4,8);
-    actions[11] = new Note(71,88,4,8);
+    
+	if (this.theLegalActions === undefined) {
+		this.theLegalAction = this.makeLegalActions();
+	};
+	actions = this.theLegalActions;
+    post("\n " + actions.length);
+    
+//    actions[0] = new Note(60,88,4,8);
+//    actions[1] = new Note(61,88,4,8);
+//    actions[2] = new Note(62,88,4,8);
+//    actions[3] = new Note(63,88,4,8);
+//    actions[4] = new Note(64,88,4,8);
+//    actions[5] = new Note(65,88,4,8);
+//    actions[6] = new Note(66,88,4,8);
+//    actions[7] = new Note(67,88,4,8);
+//    actions[8] = new Note(68,88,4,8);
+//    actions[9] = new Note(69,88,4,8);
+//    actions[10] = new Note(70,88,4,8);
+//    actions[11] = new Note(71,88,4,8);
     return actions;
 };
 
