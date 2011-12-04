@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 post("THERHEHREHRHERH_________");
 function foo(a,b,c)
 {
@@ -28,8 +27,6 @@ function anything(a)
 }
 
 
-
-var theLearner = new QLearner();
 var lastState = new StateRep(new Note(60,88,4,8), new Note(61,88,4,8), new Note(62,88,4,8));
 var currentState = new StateRep(new Note(60,88,4,8), new Note(61,88,4,8), new Note(62,88,4,8));
 var fileVersion = 0;
@@ -37,6 +34,7 @@ var lastAction = new Note(63,88,4,8);
 var actionSeries = new Array(); 
 var theLegalActions;
 var melody;
+	
 
 
 function QLearner() {
@@ -44,13 +42,13 @@ function QLearner() {
     this.epsilon = 0.7; // (exploration prob)
     this.alpha = 0.5; // (learning rate)
     this.discount = 0.9; // (discount rate) // maybe change to 1.0... 
-    
+}
    
-    this.setQValue = function(state, value) {
+QLearner.prototype.setQValue = function(state, value) {
         this.qValues.setValue(state, value);
     };
-    
-    this.getQValue = function(state, action) {
+
+QLearner.prototype.getQValue = function(state, action) {
     //        """
     //          Returns Q(state,action)
     //          Should return 0.0 if we never seen
@@ -70,7 +68,7 @@ function QLearner() {
         };
     };
         
-    this.getValue = function(state) {
+QLearner.prototype.getValue = function(state) {
         //"""
         //Returns max_action Q(state,action)
         //where the max is over legal actions.  Note that if
@@ -92,7 +90,7 @@ function QLearner() {
     
     
     
-    this.getPolicy = function(state) {
+QLearner.prototype.getPolicy = function(state) {
 //  """
 //    Compute the best action to take in a state.  Note that if there
 //    are no legal actions, which is the case at the terminal state,
@@ -129,7 +127,7 @@ function QLearner() {
         };
     };
     
-    this.getAction = function(state) {
+QLearner.prototype.getAction = function(state) {
         
 //  def getAction(self, state):
 //  """
@@ -142,6 +140,7 @@ function QLearner() {
 //    HINT: You might want to use util.flipCoin(prob)
 //    HINT: To pick randomly from a list, use random.choice(list)
 
+    	post("\n Q Get Action");
         var legalActions = getLegalActions();
         var action = null;
         
@@ -157,7 +156,7 @@ function QLearner() {
     };
     
 
-    this.update = function(state, action, nextState, reward) {
+QLearner.prototype.update = function(state, action, nextState, reward) {
         
     	post("\n Q Update------");
         
@@ -173,13 +172,17 @@ function QLearner() {
         
     };
     
-};
+
 
 function StateRep(n1,n2,n3) {
 	this.note1 = n1;
 	this.note2 = n2;
 	this.note3 = n3;
 	
+	this.getNoteArray = function() {
+		return [this.note1, this.note2, this.note3]
+	}
+	;
 	this.toString = function() {
 		return "(" + this.note1.toString() + 
 			   "/" + this.note2.toString() +
@@ -375,7 +378,7 @@ function getAction() {
 function makeActionSeries() {
 	post("\n Make Action Series");
 	var action = this.theLearner.getAction(currentState);
-	
+	post("\n after get action")
 	var oldState = currentState;
 	var newState = this.makeNextState(currentState, action);
 
@@ -408,7 +411,7 @@ function nextActionInSeries() {
 function update(reward) {
     post("\n update-----");
     
-    this.theLearner.update(lastState, lastAction, currentState, reward);
+    theLearner.update(lastState, lastAction, currentState, reward);
     post("\n statebeforeUpdate:", lastState.toString());
     post("\n stateAfterUpdate:", currentState.toString());
 };
@@ -606,7 +609,6 @@ BasicExtractor.prototype.getFeatures = function (state, action) {
  var features = new DictCounter();
  // Fill in feature computation here:
  features.setValue('bias', 1.0);
-
  var notes = state.getNoteArray().concat([action]);
  var midiNums = notes.map(function (note) {
      return note.pitch;
@@ -652,6 +654,7 @@ BasicExtractor.prototype.getFeatures = function (state, action) {
 function getFeatures () {}
 */
 
+
 function ApproxQAgent(Extractor) {
  this.qValues = new DictCounter();
  this.weights = new DictCounter();
@@ -659,6 +662,7 @@ function ApproxQAgent(Extractor) {
 }
 
 ApproxQAgent.prototype = new QLearner();
+ApproxQAgent.prototype.constructor = ApproxQAgent; 
 
 ApproxQAgent.prototype.getQValue = function (state, action) {
  var featVector = this.getFeatures(state, action);
@@ -674,6 +678,5 @@ ApproxQAgent.prototype.update = function (state, action, nextState, reward) {
 };
 
 var basicEx = new BasicExtractor();
-var AQ = new ApproxQAgent(basicEx);
- 
-
+var theLearner = new ApproxQAgent(basicEx);
+//var theLearner = new QLearner();
