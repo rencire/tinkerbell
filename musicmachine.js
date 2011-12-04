@@ -35,10 +35,10 @@ var lastAction = new Note(62,88,4,8);
 
 
 function QLearner() {
-    this.qValues = new dict();
+    this.qValues = new DictCounter();
     this.epsilon = 0.7; // (exploration prob)
     this.alpha = 0.5; // (learning rate)
-    this.discount = 0.9; // (discount rate) // maybe change to 1.0... 
+    this.discount = 0.9; // (discount rate) // maybe change to 1.0...
     
    
     this.setQValue = function(state, value) {
@@ -470,6 +470,7 @@ function forEachIn(object, action) {
   }
 }
 
+//sum only takes in an array only, otherwise behavior is undefined
 function sum (array) {
     var sum = 0;
     for (var i = 0; i < array.length; i++) {
@@ -489,10 +490,9 @@ function average () {
 // ---------------------
 // Feature vector code
 // ---------------------
-    function BasicExtractor() {
-    }
+function BasicExtractor() {}
 
-BasicExtractor.prototype.getFeatures() = function (state, action) {
+BasicExtractor.prototype.getFeatures = function (state, action) {
     var features = new DictCounter();
     // Fill in feature computation here:
     features.setValue('bias', 1.0);
@@ -502,19 +502,19 @@ BasicExtractor.prototype.getFeatures() = function (state, action) {
         note3 = state.note3;
 
     // change in pitch
-    var avgPitch = (note1.pitch + note2.pitch + note3.pitch)/3;
+    var avgPitch = average(note1.pitch + note2.pitch + note3.pitch);
     features.setValue("diff-newPitch-avgPitch", action.pitch - avgPitch);
 
     // change in velocity
-    var avgVelocity = (note1.velocity + note2.velocity + note3.velocity)/3;
+    var avgVelocity = average(note1.velocity + note2.velocity + note3.velocity);
     features.setValue("diff-newVelocity-avgVelocity", action.velocity - avgVelocity);
 
     // change in noteLength
-    var avgNoteLength = (note1.noteLength + note2.noteLength + note3.noteLength)/3;
+    var avgNoteLength = average(note1.noteLength + note2.noteLength + note3.noteLength);
     features.setValue("diff-newNoteLength-avgNoteLength", action.noteLength - avgNoteLength);
 
     // change in delay
-    var avgDelay = (note1.delay + note2.delay + note3.delay)/3;
+    var avgDelay = average(note1.delay + note2.delay + note3.delay);
     features.setValue("diff-newDelay-avgDelay", action.delay - avgDelay);
 
     return features
