@@ -488,22 +488,13 @@ function map(func, array) {
   return result;
 }
 
-//sum only takes in an array only, otherwise behavior is undefined
-function sum (array) {
+// takes in an array of numbers and outputs the average
+function average (array) {
     var sum = 0;
     for (var i = 0; i < array.length; i++) {
         sum += array[i];
     }
-    return sum;
-}
-// takes in any amount of numbers
-function average () {
-    var num = arguments.length;
-    if (num) {
-       return sum(arguments)/num;
-    } else {
-        throw 'No arguments passed to average()';
-    }
+    return sum/array.length;
 }
 
 var noteList = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -537,7 +528,9 @@ function numOfNotesInScale(scaleNum, midiArray) {
 // ---------------------
 // Feature vector code
 // ---------------------
-function BasicExtractor() {}
+function BasicExtractor() {
+    this.properties = ['pitch', 'velocity', 'noteLength', 'delay'];
+}
 
 BasicExtractor.prototype.getFeatures = function (state, action) {
     var features = new DictCounter();
@@ -545,11 +538,17 @@ BasicExtractor.prototype.getFeatures = function (state, action) {
     features.setValue('bias', 1.0);
 
     var notes = state.getNoteArray().concat([action]);
-    var midiNums = map(function (note) {
+    var midiNums = notes.map(function (note) {
         return note.pitch;
-    }, notes);
-    
-    var note1 = state.note1,
+    });
+
+
+    for (var prop in this.properties) {
+        var propValues = notes.map(function (note) { return note[prop];});
+        features.setValue("diff-" + prop, action[prop] - average(propValues));
+    }
+
+/*    var note1 = state.note1,
         note2 = state.note2,
         note3 = state.note3;
 
@@ -568,7 +567,7 @@ BasicExtractor.prototype.getFeatures = function (state, action) {
     // change in delay
     var avgDelay = average(note1.delay + note2.delay + note3.delay);
     features.setValue("diff-newDelay-avgDelay", action.delay - avgDelay);
-
+*/
     // how many times appears in C,C#,...B - major scale
     // 0 represents C scale, 1 represents C# scale, etc.
     for (var i = 0; i < 12; i++) {
