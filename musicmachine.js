@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 post("THERHEHREHRHERH_________");
 function foo(a,b,c)
 {
@@ -39,7 +40,7 @@ var melody;
 
 
 function QLearner() {
-    this.qValues = new dict();
+    this.qValues = new DictCounter();
     this.epsilon = 0.7; // (exploration prob)
     this.alpha = 0.5; // (learning rate)
     this.discount = 0.9; // (discount rate) // maybe change to 1.0... 
@@ -463,25 +464,7 @@ function getValue(state) {
     return this.theLearner.getValue(state);
 }
 
-function dict() {
-    this.array = new Array();
 
-    this.getValue = function(state){
-        if (state in this.array) {
-            return this.array[state];
-        } else {
-            return 0.0;
-        }
-    };
-
-    this.setValue = function (state, value) {
-        this.array[state] = value;
-    };
-    
-    this.hasKey = function(key) {
-            return (key in this.array);
-    };
-};
 
 function combine(a, b) {
 	return ( "(" + a + "'" + b + ")" );
@@ -517,149 +500,180 @@ function randomChoice(choices) {
     return choices[randomnumber];
 };
 
+//--------------------
+//Util functions
+//--------------------
+//Maybe use DictCounter to store values, instead of an extra object
+function DictCounter() {
+	this.obj = {};
+}
+
+DictCounter.prototype.hasKey = function(key) {
+     return (key in this.obj);
+};
+
+DictCounter.prototype.getValue = function(state){
+ if (state in this.obj) {
+     return this.obj[state];
+ } else {
+     return 0.0;
+ }
+};
+
+DictCounter.prototype.setValue = function (state, value) {
+ this.obj[state] = value;
+};
+
+DictCounter.prototype.dotProduct = function (counter) {
+ var product = 0;
+ for (state in this.obj) {
+     product += this.getValue(state) * counter.getValue(state);
+ }
+ return product;
+};
+
+function makeSA(state, action) {
+	return ( '(' + state + ',' + action + ')' );
+};
 
 
 
+function forEach(array, action) {
+for (var i = 0; i < array.length; i++)
+ action(array[i]);
+}
 
-//function someObj() {
-//        this.publicVar = 'public';
-//        var privateVar = 'private';
-//        this.someMethod = function() {
-//            alert('boo');
-//            someOtherMethod();
-//        };
-//        // Private method. (Due to closure, this need not be declared before
-//        // someMethod although someMethod uses it.)
-//        var someOtherMethod = function() {
-//            alert('indirect reference');
-//        };
-//    }
-//    o_obj = new someObj();
-//    o_obj.someOtherMethod(); //will throw an undefined function error
-//    o_obj.someMethod(); //alerts "boo" followed by "indirect reference"
-//};
+function forEachIn(object, action) {
+for (var property in object) {
+ if (Object.prototype.hasOwnProperty.call(object, property))
+   action(property, object[property]);
+}
+}
+
+function map(func, array) {
+var result = [];
+forEach(array, function (element) {
+ result.push(func(element));
+});
+return result;
+}
+
+//takes in an array of numbers and outputs the average
+function average (array) {
+ var sum = 0;
+ for (var i = 0; i < array.length; i++) {
+     sum += array[i];
+ }
+ return sum/array.length;
+}
+
+var noteList = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+var cMajorScale = [0, 2, 4, 5, 7, 9, 11];
+
+//remove ele from 'this' array if element exists
+Array.prototype.remove = function (ele) {
+ for (var i = 0; i < this.length; i++) {
+     if (this[i] === ele) {
+         this.splice(i,1);
+         return;
+     }
+ }
+};
+
+//returns number of unique notes in set(scaleNum) intersect set(midiArray)
+function numOfNotesInScale(scaleNum, midiArray) {
+ var raisedScale = map(function (x) { return (x + scaleNum) % 12;}, cMajorScale);
+ var num = 0;
+ for (var i = 0; i < midiArray.length; i++) {
+     var midiNote = midiArray[i];
+     var ind = raisedScale.indexOf(midiNote);
+     if (ind > -1) {
+         raisedScale.splice(ind, 1);
+         num++;
+     }
+ }
+ return num;
+}
+ 
+//---------------------
+//Feature vector code
+//---------------------
+function BasicExtractor() {
+ this.properties = ['pitch', 'velocity', 'noteLength', 'delay'];
+}
+
+BasicExtractor.prototype.getFeatures = function (state, action) {
+ var features = new DictCounter();
+ // Fill in feature computation here:
+ features.setValue('bias', 1.0);
+
+ var notes = state.getNoteArray().concat([action]);
+ var midiNums = notes.map(function (note) {
+     return note.pitch;
+ });
 
 
-//class QLearningAgent(ReinforcementAgent):
-//  """
-//    Q-Learning Agent
-//
-//    Functions you should fill in:
-//      - getQValue
-//      - getAction
-//      - getValue
-//      - getPolicy
-//      - update
-//
-//    Instance variables you have access to
-//      - self.epsilon (exploration prob)
-//      - self.alpha (learning rate)
-//      - self.discount (discount rate)
-//
-//    Functions you should use
-//      - self.getLegalActions(state)
-//        which returns legal actions
-//        for a state
-//  """
-//  def __init__(self, **args):
-//    "You can initialize Q-values here..."
-//    ReinforcementAgent.__init__(self, **args)
-//
-//    "*** YOUR CODE HERE ***"
-//    self.qValues = util.Counter()
-//
-//  def getQValue(self, state, action):
-//    """
-//      Returns Q(state,action)
-//      Should return 0.0 if we never seen
-//      a state or (state,action) tuple
-//    """
-//    "*** YOUR CODE HERE ***"
-//
-//    return self.qValues[(state, action)]
-//
-//
-//  def getValue(self, state):
-//    """
-//      Returns max_action Q(state,action)
-//      where the max is over legal actions.  Note that if
-//      there are no legal actions, which is the case at the
-//      terminal state, you should return a value of 0.0.
-//    """
-//    "*** YOUR CODE HERE ***"
-//    actions = self.getLegalActions(state)
-//    value = 0.0
-//    for a in actions :
-//        qValue = self.getQValue(state, a)
-//        if qValue > value :
-//            value = qValue
-//        
-//    return value
-//
-//  def getPolicy(self, state):
-//    """
-//      Compute the best action to take in a state.  Note that if there
-//      are no legal actions, which is the case at the terminal state,
-//      you should return None.
-//    """
-//    "*** YOUR CODE HERE ***"
-//    
-//    actions = self .getLegalActions(state)
-//    if len(actions) == 0 :
-//        return None
-//    value = float('-inf')
-//    choices = []
-//    for a in actions :
-//        qValue = self.getQValue(state, a)
-//        if qValue == value :
-//           choices.append(a)
-//        if qValue > value :
-//            value = qValue
-//            choices = []
-//            choices.append(a)
-//    if len(choices) == 1 :
-//        return choices[0]
-//    else :
-//        return random.choice(choices)
-//        
-//            
-//
-//  def getAction(self, state):
-//    """
-//      Compute the action to take in the current state.  With
-//      probability self.epsilon, we should take a random action and
-//      take the best policy action otherwise.  Note that if there are
-//      no legal actions, which is the case at the terminal state, you
-//      should choose None as the action.
-//
-//      HINT: You might want to use util.flipCoin(prob)
-//      HINT: To pick randomly from a list, use random.choice(list)
-//    """
-//    # Pick Action
-//    legalActions = self.getLegalActions(state)
-//    action = None
-//    "*** YOUR CODE HERE ***"
-//
-//    if util.flipCoin(self.epsilon) == True :
-//        action = random.choice(legalActions)
-//    else :
-//        action = self.getPolicy(state)
-//
-//    return action
-//
-//  def update(self, state, action, nextState, reward):
-//    """
-//      The parent class calls this to observe a
-//      state = action => nextState and reward transition.
-//      You should do your Q-Value update here
-//
-//      NOTE: You should never call this function,
-//      it will be called on your behalf
-//    """
-//    "*** YOUR CODE HERE ***"
-//    
-//    stateAction = (state, action)
-//    sample = (reward + (self.discount * self.getValue(nextState)) ) 
-//    
-//    self.qValues[stateAction] =  ( ( (1-self.alpha) * self.getQValue(state, action))  + self.alpha * sample )
-//
+ for (var prop in this.properties) {
+     var propValues = notes.map(function (note) { return note[prop];});
+     features.setValue("diff-" + prop, action[prop] - average(propValues));
+ }
+
+/*    var note1 = state.note1,
+     note2 = state.note2,
+     note3 = state.note3;
+
+ // change in pitch
+ var avgPitch = average(note1.pitch + note2.pitch + note3.pitch);
+ features.setValue("diff-newPitch-avgPitch", action.pitch - avgPitch);
+
+ // change in velocity
+ var avgVelocity = average(note1.velocity + note2.velocity + note3.velocity);
+ features.setValue("diff-newVelocity-avgVelocity", action.velocity - avgVelocity);
+
+ // change in noteLength
+ var avgNoteLength = average(note1.noteLength + note2.noteLength + note3.noteLength);
+ features.setValue("diff-newNoteLength-avgNoteLength", action.noteLength - avgNoteLength);
+
+ // change in delay
+ var avgDelay = average(note1.delay + note2.delay + note3.delay);
+ features.setValue("diff-newDelay-avgDelay", action.delay - avgDelay);
+*/
+ // how many times appears in C,C#,...B - major scale
+ // 0 represents C scale, 1 represents C# scale, etc.
+ for (var i = 0; i < 12; i++) {
+     var numNotes = numOfNotesInScale(i, midiNums.map(function (x) { return x % 12;}));
+     features.setValue('num-of-notes-in-' + noteList[i] + '-maj-scale', numNotes);
+ }
+
+ return features
+};
+
+/* If too slow, take out BasicExtractor class and use getFeatures only
+function getFeatures () {}
+*/
+
+function ApproxQAgent(Extractor) {
+ this.qValues = new DictCounter();
+ this.weights = new DictCounter();
+ this.getFeatures = Extractor.getFeatures;
+}
+
+ApproxQAgent.prototype = new QLearner();
+
+ApproxQAgent.prototype.getQValue = function (state, action) {
+ var featVector = this.getFeatures(state, action);
+ return this.weights.dotProduct(featVector);
+};
+
+ApproxQAgent.prototype.update = function (state, action, nextState, reward) {
+ var featVector = this.getFeatures(state, action);
+ var correction = (reward + this.discount * this.getValue()) - this.getQValue(state, action);
+ for (var feature in featVector) {
+     this.weights[feature] += this.alpha * correction * featVector[feature];
+ }
+};
+
+var basicEx = new BasicExtractor();
+var AQ = new ApproxQAgent(basicEx);
+ 
+
