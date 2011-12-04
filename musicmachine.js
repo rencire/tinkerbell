@@ -184,7 +184,11 @@ function StateRep(n1,n2,n3) {
 	this.note1 = n1;
 	this.note2 = n2;
 	this.note3 = n3;
-	
+
+    this.getNoteArray = function () {
+        return [n1, n2, n3];
+    };
+    
 	this.toString = function() {
 		return "(" + this.note1.toString() + 
 			   "/" + this.note2.toString() +
@@ -463,11 +467,25 @@ function makeSA(state, action) {
 }
 
 
+
+function forEach(array, action) {
+  for (var i = 0; i < array.length; i++)
+    action(array[i]);
+}
+
 function forEachIn(object, action) {
   for (var property in object) {
     if (Object.prototype.hasOwnProperty.call(object, property))
       action(property, object[property]);
   }
+}
+
+function map(func, array) {
+  var result = [];
+  forEach(array, function (element) {
+    result.push(func(element));
+  });
+  return result;
 }
 
 //sum only takes in an array only, otherwise behavior is undefined
@@ -478,7 +496,7 @@ function sum (array) {
     }
     return sum;
 }
-
+// takes in any amount of numbers
 function average () {
     var num = arguments.length;
     if (num) {
@@ -487,6 +505,35 @@ function average () {
         throw 'No arguments passed to average()';
     }
 }
+
+var noteList = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+var cMajorScale = [0, 2, 4, 5, 7, 9, 11];
+
+// remove ele from 'this' array if element exists
+Array.prototype.remove = function (ele) {
+    for (var i = 0; i < this.length; i++) {
+        if (this[i] === ele) {
+            this.splice(i,1);
+            return;
+        }
+    }
+};
+
+// returns number of unique notes in set(scaleNum) intersect set(midiArray)
+function numOfNotesInScale(scaleNum, midiArray) {
+    var raisedScale = map(function (x) { return (x + scaleNum) % 12;}, cMajorScale);
+    var num = 0;
+    for (var i = 0; i < midiArray.length; i++) {
+        var midiNote = midiArray[i];
+        var ind = raisedScale.indexOf(midiNote);
+        if (ind > -1) {
+            raisedScale.splice(ind, 1);
+            num++;
+        }
+    }
+    return num;
+}
+    
 // ---------------------
 // Feature vector code
 // ---------------------
@@ -496,7 +543,12 @@ BasicExtractor.prototype.getFeatures = function (state, action) {
     var features = new DictCounter();
     // Fill in feature computation here:
     features.setValue('bias', 1.0);
-                                 
+
+    var notes = state.getNoteArray().concat([action]);
+    var midiNums = map(function (note) {
+        return note.pitch;
+    }, notes);
+    
     var note1 = state.note1,
         note2 = state.note2,
         note3 = state.note3;
@@ -516,6 +568,13 @@ BasicExtractor.prototype.getFeatures = function (state, action) {
     // change in delay
     var avgDelay = average(note1.delay + note2.delay + note3.delay);
     features.setValue("diff-newDelay-avgDelay", action.delay - avgDelay);
+
+    // how many times appears in C,C#,...B - major scale
+    // 0 represents C scale, 1 represents C# scale, etc.
+    for (var i = 0; i < 12; i++) {
+        var numNotes = numOfNotesInScale(i, midiNums.map(function (x) { return x % 12;}));
+        features.setValue('num-of-notes-in-' + noteList[i] + '-maj-scale', numNotes);
+    }
 
     return features
 };
@@ -547,5 +606,6 @@ ApproxQAgent.prototype.update = function (state, action, nextState, reward) {
 
 var basicEx = new BasicExtractor();
 var AQ = new ApproxQAgent(basicEx);
+    
 
 
