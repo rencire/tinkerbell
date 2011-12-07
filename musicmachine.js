@@ -34,7 +34,7 @@ var melody;
 function QLearner() {
     this.qValues = new DictCounter();
     this.epsilon = 0.7; // (exploration prob)
-    this.alpha = 0.5; // (learning rate)
+    this.alpha = 0.01; // (learning rate)
     this.discount = 0.9; // (discount rate) // maybe change to 1.0... 
 }
 
@@ -231,7 +231,7 @@ function loadValues(n) {
 //	var startState = new statRep(startNote,startNote,startNote);
 
 
-    fileName = "qvalues-" + n % 8 + ".txt";
+    fileName = "weights-" + n % 8 + ".txt";
     var s = new String();
     s = fileName;
     f = new File(s, "read");
@@ -242,7 +242,7 @@ function loadValues(n) {
         while (nextLine != null) {
             post("\n loaded:" + nextLine);
             nextLine = nextLine.split(":");
-            theLearner.qValues.setValue(nextLine[0], nextLine[1]);
+            theLearner.weights.setValue(nextLine[0], nextLine[1]);
             var nextLine = f.readline(256);
         }
         ;
@@ -261,10 +261,10 @@ function saveToFile() {
 
     fileVersion += 1;
     var cpt = fileVersion % 8;
-    var f = new File("qvalues-" + cpt + ".txt", "readwrite", "TEXT");
+    var f = new File("Weights-" + cpt + ".txt", "readwrite", "TEXT");
 
     if (f.isopen) {
-        var theArray = theLearner.qValues.array;
+        var theArray = theLearner.weights.obj;
         for (state in theArray) {
             theLine = state + ":" + theArray[state];
             if (theLine.split(":").length == 2) {
@@ -289,7 +289,7 @@ function saveToFile() {
 
 function test() {
     post("test");
-    var theArray = theLearner.qValues.array;
+    var theArray = theLearner.qValues.obj;
     for (state in theArray) {
         theLine = state + ":" + theArray[state];
         post(theLine.split(":").length);
@@ -302,7 +302,17 @@ function test() {
 
 function printQ() {
     post("\n Print Q");
-    var theArray = theLearner.qValues.array;
+    var theArray = theLearner.qValues.obj;
+    for (state in theArray) {
+        theLine = state + ":" + theArray[state];
+        post("\n " + theLine);
+    }
+    ;
+}
+
+function printWeights() {
+    post("\n Print Weights");
+    var theArray = theLearner.weights.obj;
     for (state in theArray) {
         theLine = state + ":" + theArray[state];
         post("\n " + theLine);
@@ -392,7 +402,6 @@ function nextActionInMelody() {
 
 function getAction() {
     post("\n Get Action");
-
     outlet(0, "/getAction", 0);
 
 }
@@ -401,7 +410,7 @@ function getAction() {
 function makeActionSeries() {
     post("\n Make Action Series");
     var action = this.theLearner.getAction(currentState);
-    post("\n after get action")
+    post("\n after get action");
     var oldState = currentState;
     var newState = this.makeNextState(currentState, action);
 
@@ -436,6 +445,7 @@ function nextActionInSeries() {
 
 function update(reward) {
     post("\n update-----");
+    post("\n LastState", lastState.toString());
 
     theLearner.update(lastState, lastAction, currentState, reward);
     post("\n statebeforeUpdate:", lastState.toString());
@@ -449,8 +459,8 @@ function makeLegalActions() {
     var index = 0;
     for (var i = 48; i < 72; i++) {
         for (var j = 40; j < 130; j += 40) {
-            for (var p = 1; p < 32; p++) {
-                for (var q = 1; q < 32; q++) {
+            for (var p = 1; p < 16; p++) {
+                for (var q = 1; q < 16; q++) {
                     actions[index] = new Note(i, j, p, q);
                     index++;
                 }
@@ -658,26 +668,26 @@ BasicExtractor.prototype.getFeatures = function (state, action) {
 
 // change in pitch
     var avgPitch = (note1.pitch + note2.pitch + note3.pitch) / 3;
-    features.setValue("diff-newPitch-avgPitch", action.pitch - avgPitch);
+    features.setValue("diff-newPitch-avgPitch", Math.abs(action.pitch - avgPitch));
 
 // change in velocity
     var avgVelocity = (note1.velocity + note2.velocity + note3.velocity) / 3;
-    features.setValue("diff-newVelocity-avgVelocity", action.velocity - avgVelocity);
+    features.setValue("diff-newVelocity-avgVelocity", Math.abs(action.velocity - avgVelocity) / 40);
 
 // change in noteLength
     var avgNoteLength = (note1.noteLength + note2.noteLength + note3.noteLength) / 3;
-    features.setValue("diff-newNoteLength-avgNoteLength", action.noteLength - avgNoteLength);
+    features.setValue("diff-newNoteLength-avgNoteLength", Math.abs(action.noteLength - avgNoteLength));
 
 // change in delay
     var avgDelay = (note1.delay + note2.delay + note3.delay) / 3;
-    features.setValue("diff-newDelay-avgDelay", action.delay - avgDelay);
+    features.setValue("diff-newDelay-avgDelay", Math.abs(action.delay - avgDelay));
 
-// how many times appears in C,C#,...B - major scale
-// 0 represents C scale, 1 represents C# scale, etc.
-    for (var rootNote in scales) {
-        var numNotes = numOfNotesInScale(scales[rootNote], midiNums);
-        features.setValue('num-of-notes-in-' + rootNote + '-maj-scale', numNotes);
-    }
+//// how many times appears in C,C#,...B - major scale
+//// 0 represents C scale, 1 represents C# scale, etc.
+//    for (var rootNote in scales) {
+//        var numNotes = numOfNotesInScale(scales[rootNote], midiNums);
+//        features.setValue('num-of-notes-in-' + rootNote + '-maj-scale', numNotes);
+//    }
 
     return features
 };
@@ -700,14 +710,30 @@ ApproxQAgent.prototype.getQValue = function (state, action) {
     var featVector = this.getFeatures(state, action);
     return this.weights.dotProduct(featVector);
 };
-
 ApproxQAgent.prototype.update = function (state, action, nextState, reward) {
-    var featVector = this.getFeatures(state, action);
-    var correction = (reward + this.discount * this.getValue()) - this.getQValue(state, action);
-    for (var feature in featVector) {
-        this.weights[feature] += this.alpha * correction * featVector[feature];
-    }
+	var featVector = this.getFeatures(state, action);
+	var correction = (reward + (this.discount * this.getValue(nextState))) - this.getQValue(state, action);
+	post("\n Correction: \n" + correction );
+	post("\n nextV: \n" + this.getValue(nextState));
+	post("\n nextV: \n" + this.getQValue(state,action));
+
+	post("\n FeatureVals: \n" );
+
+	for (var feature in featVector.obj) {
+		post("\n:    " + feature + ":" +  featVector.obj[feature]);
+
+		this.weights.setValue(feature, this.weights.getValue(feature) + (this.alpha * correction * featVector.getValue(feature)));
+	}
+
+	post("\n Weights: \n" );
+
+	for (o in this.weights.obj) {
+		post("\n    " + o + ":" + this.weights.obj[o]);
+	}
+	
+
 };
+
 
 var basicEx = new BasicExtractor();
 var theLearner = new ApproxQAgent(basicEx);
