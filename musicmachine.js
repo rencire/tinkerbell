@@ -242,7 +242,7 @@ function loadValues(n) {
         while (nextLine != null) {
             post("\n loaded:" + nextLine);
             nextLine = nextLine.split(":");
-            theLearner.weights.setValue(nextLine[0], nextLine[1]);
+            theLearner.weights.setValue(nextLine[0], parseFloat(nextLine[1]));
             var nextLine = f.readline(256);
         }
         ;
@@ -666,29 +666,171 @@ BasicExtractor.prototype.getFeatures = function (state, action) {
         note2 = state.note2,
         note3 = state.note3;
 
-// change in pitch
-    var avgPitch = (note1.pitch + note2.pitch + note3.pitch) / 3;
-    features.setValue("diff-newPitch-avgPitch", Math.abs(action.pitch - avgPitch));
+//// change in pitch
+//    var avgPitch = (note1.pitch + note2.pitch + note3.pitch) / 3;
+//    features.setValue("diff-newPitch-avgPitch", Math.abs(action.pitch - avgPitch));
+//
+//// change in velocity
+//    var avgVelocity = (note1.velocity + note2.velocity + note3.velocity) / 3;
+//    features.setValue("diff-newVelocity-avgVelocity", Math.abs(action.velocity - avgVelocity) / 40);
+//
+//// change in noteLength
+//    var avgNoteLength = (note1.noteLength + note2.noteLength + note3.noteLength) / 3;
+//    features.setValue("diff-newNoteLength-avgNoteLength", Math.abs(action.noteLength - avgNoteLength));
+//
+//// change in delay
+//    var avgDelay = (note1.delay + note2.delay + note3.delay) / 3;
+//    features.setValue("diff-newDelay-avgDelay", Math.abs(action.delay - avgDelay));
+    
+// notes Played Together
+    var notesPlayedTogether = 0;
+    if (action.delay == 0) {
+    	notesPlayedTogether = 1;
+    };
+    features.setValue("notesPlayedTogether", notesPlayedTogether);
+    
+ // multiple notes played together
+    var multiNotes = 0;
+    if (notesPlayedTogether = 1) {
+    	if (note1.delay == 0) {
+    		multiNotes = 1;
+    	} else if ( note2.delay == 0) {
+    		multiNotes = 1;
+    	} else if ( note3.delay == 0) {
+    		multiNotes = 1;
+    	};
+    }
+    features.setValue("multiNotes", multiNotes);
 
-// change in velocity
-    var avgVelocity = (note1.velocity + note2.velocity + note3.velocity) / 3;
-    features.setValue("diff-newVelocity-avgVelocity", Math.abs(action.velocity - avgVelocity) / 40);
+    
+// silence to sequence
+    var addQuiteTime = 0;
+    if (action.length = 0) {
+    	if( note1.length != 0 && note2.length != 0 && note3.length != 0) {
+    		addQuiteTime = 1;
+    	};
+    };
+    features.setValue("quiteTime", addQuiteTime);
+    
+// note pitch repition 
+    var pitchRepition = 0;
+    if (note3.pitch == action.pitch ) {
+    	pitchRepition = 1;
+    };
+    features.setValue("pitchRepition", pitchRepition);
+    
+// multiple pitch repition
+    var pitchRepition = 0;
+    if (note1.pitch == action.pitch ) {
+        pitchRepition += 1;
 
-// change in noteLength
-    var avgNoteLength = (note1.noteLength + note2.noteLength + note3.noteLength) / 3;
-    features.setValue("diff-newNoteLength-avgNoteLength", Math.abs(action.noteLength - avgNoteLength));
+    };
+    if (note2.pitch == action.pitch ) {
+        pitchRepition += 1;
 
-// change in delay
-    var avgDelay = (note1.delay + note2.delay + note3.delay) / 3;
-    features.setValue("diff-newDelay-avgDelay", Math.abs(action.delay - avgDelay));
+    };
+    if (note3.pitch == action.pitch ) {
+        pitchRepition += 1;
+    };
+    features.setValue("multiPitchRepition", pitchRepition);
 
+
+    
+//  timing repition
+    var timingRepition = 0;
+    if (note1.delay == action.delay || note2.delay == action.delay || note3.delay == action.delay) {
+    	timingRepition = 1;
+    };
+    features.setValue("timingRepition", timingRepition);
+    
+// adds length repition
+    var lengthRepition = 0;
+    if (note1.length == action.length || note2.length == action.length || note3.length == action.length) {
+    	lengthRepition = 1;
+    };
+    features.setValue("lengthRepition", lengthRepition);
+    
+// creates fast sequence
+    var fastSeq = 0;
+    if (action.delay < 5) {
+    	if( (note2.delay < 5) && (note3.delay < 5)) {
+    		fastSeq = 1;
+    	}
+    };
+    features.setValue("fastSeq", fastSeq);
+
+// creates long wait
+    var longWait = 0;
+    if (action.delay > 8) {
+    	longWait = 1;
+    };
+    features.setValue("longWait", longWait);
+    
+// varing wait
+    var varWait = 0;
+    if (Math.abs( note3.delay - action.delay)  > 4) {
+    	varWait = 1;
+    };
+    features.setValue("varWait", varWait);
+
+    
+// creates slow seq
+    var slowSeq = 0;
+    if (action.delay > 8) {
+    	if( (note2.delay > 8) && (note3.delay > 8)) {
+    		slowSeq = 1;
+    	}
+    };
+    features.setValue("slowSeq", slowSeq);
+
+
+    	
+// fast seq to long delay
+    var fToLong = 0;
+    if ( fastSeq == 1 && longWait == 1) {
+    	fToLong = 1;
+    };
+    features.setValue("fToLong", fToLong);
+
+//end fast
+    
+// end slow
+
+// creats shorts seq
+    var shortSeq = 0;
+    if (action.length < 4) {
+    	if( (note2.length < 4) && (note3.length < 4)) {
+    		shortSeq = 1;
+    	}
+    };
+    features.setValue("shortSeq", shortSeq);
+
+    
+// creats longs seq
+    var longSeq = 0;
+    if (action.length > 7) {
+    	if( (note2.length > 7) && (note3.length > 7)) {
+    		longSeq = 1;
+    	}
+    };
+    features.setValue("longSeq", longSeq);
+
+    // maybe ends above
+//shorts to long
+// longs to short
+    	
+// increasing pitch and vice
+    	
+
+
+    
 //// how many times appears in C,C#,...B - major scale
 //// 0 represents C scale, 1 represents C# scale, etc.
 //    for (var rootNote in scales) {
 //        var numNotes = numOfNotesInScale(scales[rootNote], midiNums);
 //        features.setValue('num-of-notes-in-' + rootNote + '-maj-scale', numNotes);
 //    }
-
+//
     return features
 };
 
